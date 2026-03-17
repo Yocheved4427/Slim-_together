@@ -230,6 +230,36 @@
         <div class="achievements-grid" id="achievements-grid"></div>
       </div>
 
+      <!-- ===== Custom Tasks Manager ===== -->
+      <div class="custom-tasks-section">
+        <h3 class="section-title">📝 ניהול משימות</h3>
+        <p class="section-sub">הוסיפו משימות אישיות שיצטרפו לרוטציה היומית</p>
+
+        <form id="form-add-task" class="add-task-form">
+          <div class="add-task-row">
+            <div class="input-group">
+              <label>אייקון <span class="label-hint">(emoji)</span></label>
+              <input type="text" id="new-task-icon" placeholder="🥗" maxlength="4" class="icon-input" />
+            </div>
+            <div class="input-group flex-grow">
+              <label>כותרת המשימה</label>
+              <input type="text" id="new-task-title" placeholder="לדוגמה: שתו מים עם לימון בבוקר" required />
+            </div>
+          </div>
+          <div class="input-group">
+            <label>תיאור <span class="label-hint">(אופציונלי)</span></label>
+            <input type="text" id="new-task-desc" placeholder="הסבר קצר על המשימה" />
+          </div>
+          <div class="input-group">
+            <label>טיפ <span class="label-hint">(אופציונלי)</span></label>
+            <input type="text" id="new-task-tip" placeholder="טיפ שימושי לביצוע המשימה" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">➕ הוסף משימה</button>
+        </form>
+
+        <div id="custom-tasks-list" class="custom-tasks-list"></div>
+      </div>
+
     </div>
 
   </div>

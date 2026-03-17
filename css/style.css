@@ -641,7 +641,101 @@ html, body {
 
 /* ── Utility ───────────────────────────────────────── */
 .hidden { display: none !important; }
+/* ── Custom Tasks Manager ─────────────────────────────── */
+.custom-tasks-section {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.section-sub {
+  color: var(--gray-600);
+  font-size: 0.88rem;
+  margin-top: -8px;
+  margin-bottom: 16px;
+}
+.add-task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.add-task-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.icon-input {
+  width: 72px !important;
+  text-align: center;
+  font-size: 1.4rem !important;
+}
+.flex-grow { flex: 1; }
 
+.custom-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.custom-task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--gray-50);
+  border: 2px solid var(--gray-100);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  transition: border-color .2s;
+}
+.custom-task-item:hover { border-color: var(--gray-200); }
+.custom-task-item .ct-icon { font-size: 1.5rem; flex-shrink: 0; }
+.custom-task-item .ct-body { flex: 1; min-width: 0; }
+.custom-task-item .ct-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.custom-task-item .ct-desc {
+  font-size: 0.78rem;
+  color: var(--gray-400);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.custom-task-badge {
+  background: var(--green-light);
+  color: var(--green-dark);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-delete-task {
+  background: none;
+  border: 2px solid var(--gray-200);
+  border-radius: 8px;
+  width: 32px; height: 32px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background .2s, border-color .2s;
+  color: var(--gray-600);
+}
+.btn-delete-task:hover { background: #fff0f0; border-color: var(--red); color: var(--red); }
+.empty-tasks-msg {
+  text-align: center;
+  color: var(--gray-400);
+  font-size: 0.875rem;
+  padding: 16px;
+}
 /* ── Responsive ────────────────────────────────────── */
 @media (max-width: 500px) {
   .auth-container { padding: 28px 20px 24px; }

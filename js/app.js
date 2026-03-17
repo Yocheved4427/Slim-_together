@@ -6,8 +6,20 @@
 'use strict';
 
 // ── Storage helpers ─────────────────────────────────────────
-const STORE_USERS   = 'aklTov_users';
-const STORE_CURRENT = 'aklTov_currentUser';
+const STORE_USERS        = 'aklTov_users';
+const STORE_CURRENT      = 'aklTov_currentUser';
+const STORE_CUSTOM_TASKS = 'aklTov_customTasks';
+
+function loadCustomTasks()       { return JSON.parse(localStorage.getItem(STORE_CUSTOM_TASKS) || '[]'); }
+function saveCustomTasks(tasks)  { localStorage.setItem(STORE_CUSTOM_TASKS, JSON.stringify(tasks)); }
+function getAllTasks()            { return [...TASKS, ...loadCustomTasks()]; }
+function getDailyTaskCombined() {
+  const all   = getAllTasks();
+  const epoch = new Date(2026, 0, 1).getTime();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const dayNum = Math.floor((today.getTime() - epoch) / 86400000);
+  return all[((dayNum % all.length) + all.length) % all.length];
+}
 
 function loadUsers()       { return JSON.parse(localStorage.getItem(STORE_USERS)  || '[]'); }
 function saveUsers(users)  { localStorage.setItem(STORE_USERS, JSON.stringify(users)); }
@@ -171,7 +183,7 @@ function renderNav(user) {
 function renderHome(user) {
   user = recalcStreak(user);
   const partner = findPartner(user);
-  const task    = getDailyTask();
+  const task    = getDailyTaskCombined();
   const today   = todayStr();
 
   // Greeting
@@ -285,6 +297,46 @@ function renderProfile(user) {
 
   // Achievements
   renderAchievements(user);
+
+  // Custom tasks
+  renderCustomTasks();
+}
+
+function renderCustomTasks() {
+  const list   = document.getElementById('custom-tasks-list');
+  const custom = loadCustomTasks();
+  list.innerHTML = '';
+
+  if (custom.length === 0) {
+    list.innerHTML = '<p class="empty-tasks-msg">עדיין לא הוספתם משימות אישיות</p>';
+    return;
+  }
+
+  custom.forEach((task, idx) => {
+    const item = document.createElement('div');
+    item.className = 'custom-task-item';
+    item.innerHTML = `
+      <span class="ct-icon">${task.icon || '📌'}</span>
+      <div class="ct-body">
+        <div class="ct-title">${task.title}</div>
+        ${task.desc ? `<div class="ct-desc">${task.desc}</div>` : ''}
+      </div>
+      <span class="custom-task-badge">אישי</span>
+      <button class="btn-delete-task" data-idx="${idx}" title="מחק משימה">🗑</button>
+    `;
+    list.appendChild(item);
+  });
+
+  list.querySelectorAll('.btn-delete-task').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = parseInt(btn.dataset.idx);
+      const tasks = loadCustomTasks();
+      tasks.splice(i, 1);
+      saveCustomTasks(tasks);
+      renderCustomTasks();
+      showToast('המשימה נמחקה', 'info');
+    });
+  });
 }
 
 function renderCalendar(user) {
@@ -493,6 +545,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderNav(user);
     renderHome(user);
+  });
+
+  // ── Add custom task ──
+  document.getElementById('form-add-task').addEventListener('submit', e => {
+    e.preventDefault();
+    const icon  = document.getElementById('new-task-icon').value.trim()  || '📌';
+    const title = document.getElementById('new-task-title').value.trim();
+    const desc  = document.getElementById('new-task-desc').value.trim();
+    const tip   = document.getElementById('new-task-tip').value.trim();
+    if (!title) return;
+    const tasks = loadCustomTasks();
+    tasks.push({ icon, title, desc, tip, custom: true });
+    saveCustomTasks(tasks);
+    document.getElementById('new-task-icon').value  = '';
+    document.getElementById('new-task-title').value = '';
+    document.getElementById('new-task-desc').value  = '';
+    document.getElementById('new-task-tip').value   = '';
+    renderCustomTasks();
+    showToast(`✅ המשימה "${title}" נוספה לרוטציה!`, 'success');
   });
 
   // ── Calendar navigation ──
