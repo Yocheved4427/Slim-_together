@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>אכל טוב – אתגר תזונה יומי</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ===== AUTH SCREEN ===== -->
+  <div id="screen-auth" class="screen active">
+    <div class="auth-container">
+      <div class="auth-logo">
+        <span class="logo-icon">🥦</span>
+        <h1 class="logo-title">אכל טוב</h1>
+        <p class="logo-sub">אתגר תזונה יומי בזוגות</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">התחברות</button>
+        <button class="auth-tab" data-tab="register">הרשמה</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login" class="auth-form active">
+        <div class="input-group">
+          <label>שם משתמש</label>
+          <input type="text" id="login-username" placeholder="הכנס שם משתמש" required />
+        </div>
+        <div class="input-group">
+          <label>סיסמה</label>
+          <input type="password" id="login-password" placeholder="הכנס סיסמה" required />
+        </div>
+        <p id="login-error" class="form-error hidden"></p>
+        <button type="submit" class="btn btn-primary btn-full">התחבר</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" class="auth-form">
+        <div class="input-group">
+          <label>שם מלא</label>
+          <input type="text" id="reg-name" placeholder="הכנס שם מלא" required />
+        </div>
+        <div class="input-group">
+          <label>שם משתמש</label>
+          <input type="text" id="reg-username" placeholder="בחר שם משתמש" required />
+        </div>
+        <div class="input-group">
+          <label>סיסמה</label>
+          <input type="password" id="reg-password" placeholder="בחר סיסמה (לפחות 4 תווים)" required />
+        </div>
+        <div class="input-group">
+          <label>קוד זוג <span class="label-hint">(שתפו עם השותף שלכם)</span></label>
+          <input type="text" id="reg-paircode" placeholder="לדוגמה: TEAM123" required />
+        </div>
+        <p id="reg-error" class="form-error hidden"></p>
+        <button type="submit" class="btn btn-primary btn-full">הצטרף לאתגר!</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <div id="screen-app" class="screen">
+
+    <!-- Top Navigation -->
+    <nav class="app-nav">
+      <div class="nav-logo">🥦 אכל טוב</div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-page="home">🏠 בית</button>
+        <button class="nav-tab" data-page="profile">👤 אזור אישי</button>
+      </div>
+      <div class="nav-right">
+        <div class="nav-streak">
+          <span class="flame" id="nav-flame">🔥</span>
+          <span id="nav-streak-count">0</span>
+        </div>
+        <div class="nav-points">
+          <span>⭐</span>
+          <span id="nav-points-count">0</span>
+        </div>
+        <button class="btn-logout" id="btn-logout" title="התנתק">↩</button>
+      </div>
+    </nav>
+
+    <!-- ===== HOME PAGE ===== -->
+    <div id="page-home" class="page active">
+
+      <!-- Greeting banner -->
+      <div class="greeting-banner">
+        <div class="greeting-text">
+          <h2>שלום, <span id="greeting-name"></span>! 👋</h2>
+          <p id="greeting-sub">כאן תוכל לראות את האתגר של היום</p>
+        </div>
+        <div class="greeting-stats">
+          <div class="stat-pill">🔥 <strong id="banner-streak">0</strong> ימים ברצף</div>
+          <div class="stat-pill">⭐ <strong id="banner-points">0</strong> נקודות</div>
+        </div>
+      </div>
+
+      <!-- Waiting for partner message -->
+      <div id="waiting-partner" class="info-card hidden">
+        <div class="info-icon">⏳</div>
+        <h3>ממתין לשותף</h3>
+        <p>שתף את קוד הזוג שלך: <strong id="my-pair-code"></strong></p>
+        <p class="hint">ברגע שהשותף שלך יירשם עם אותו קוד – האתגר יתחיל!</p>
+      </div>
+
+      <!-- Daily Task Card -->
+      <div id="daily-task-card" class="task-card hidden">
+        <div class="task-card-header">
+          <span class="task-date" id="task-date-display"></span>
+          <span class="task-badge">אתגר יומי</span>
+        </div>
+        <div class="task-icon-big" id="task-icon">🥗</div>
+        <h3 class="task-title" id="task-title">טוען...</h3>
+        <p class="task-desc" id="task-desc"></p>
+        <div class="task-tip">
+          <span>💡 טיפ: </span><span id="task-tip"></span>
+        </div>
+
+        <!-- My completion -->
+        <div class="completion-section">
+          <div class="completion-row">
+            <div class="completion-user">
+              <div class="avatar" id="my-avatar-home"></div>
+              <span id="my-name-home"></span>
+            </div>
+            <button id="btn-complete" class="btn-check">
+              <span class="check-icon">✓</span>
+              <span class="check-label">סמן כהושלם</span>
+            </button>
+          </div>
+
+          <!-- Partner completion -->
+          <div class="completion-row">
+            <div class="completion-user">
+              <div class="avatar" id="partner-avatar-home"></div>
+              <span id="partner-name-home"></span>
+            </div>
+            <div id="partner-status" class="partner-status pending">
+              <span>⏳ ממתין...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Streak & progress section -->
+      <div id="pair-progress" class="pair-progress hidden">
+        <h3 class="section-title">התקדמות הזוג השבוע</h3>
+        <div class="week-row">
+          <div class="week-user">
+            <span id="week-my-name"></span>
+            <div class="week-dots" id="week-my-dots"></div>
+          </div>
+          <div class="week-user">
+            <span id="week-partner-name"></span>
+            <div class="week-dots" id="week-partner-dots"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Motivational quote -->
+      <div class="quote-card" id="quote-card">
+        <span class="quote-icon">🌱</span>
+        <p id="daily-quote"></p>
+      </div>
+
+    </div>
+
+    <!-- ===== PROFILE PAGE ===== -->
+    <div id="page-profile" class="page">
+
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <div class="profile-avatar-big" id="profile-avatar"></div>
+        <div class="profile-info">
+          <h2 id="profile-name"></h2>
+          <p id="profile-username" class="profile-uname"></p>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card stat-streak">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-value" id="stat-streak">0</div>
+          <div class="stat-label">רצף נוכחי</div>
+        </div>
+        <div class="stat-card stat-best">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-value" id="stat-best">0</div>
+          <div class="stat-label">רצף מקסימלי</div>
+        </div>
+        <div class="stat-card stat-points">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-value" id="stat-points">0</div>
+          <div class="stat-label">נקודות כולל</div>
+        </div>
+        <div class="stat-card stat-tasks">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value" id="stat-tasks">0</div>
+          <div class="stat-label">משימות הושלמו</div>
+        </div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="calendar-section">
+        <div class="calendar-header">
+          <button class="cal-nav" id="cal-prev">‹</button>
+          <h3 id="cal-month-title"></h3>
+          <button class="cal-nav" id="cal-next">›</button>
+        </div>
+        <div class="calendar-grid-header">
+          <span>א׳</span><span>ב׳</span><span>ג׳</span><span>ד׳</span><span>ה׳</span><span>ו׳</span><span>ש׳</span>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+        <div class="calendar-legend">
+          <span class="legend-dot completed-dot"></span> הושלם
+          <span class="legend-dot missed-dot"></span> הוחמץ
+          <span class="legend-dot future-dot"></span> עתידי
+        </div>
+      </div>
+
+      <!-- Achievements -->
+      <div class="achievements-section">
+        <h3 class="section-title">הישגים</h3>
+        <div class="achievements-grid" id="achievements-grid"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Confetti canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <script src="js/tasks.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
