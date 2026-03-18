@@ -1,50 +1,18 @@
 // ============================================================
-//  אכל טוב – Main App Logic
-//  All data stored in localStorage (no server needed)
+//  אכל טוב – Main App Logic  (Firebase edition)
+//  All data stored in Firebase Firestore.
+//  Daily task is set manually each day by any logged-in user.
 // ============================================================
 
 'use strict';
 
-// ── Storage helpers ─────────────────────────────────────────
-const STORE_USERS        = 'aklTov_users';
-const STORE_CURRENT      = 'aklTov_currentUser';
-const STORE_CUSTOM_TASKS = 'aklTov_customTasks';
+// ── Session (only username kept locally) ─────────────────
+const STORE_CURRENT = 'aklTov_currentUser';
+function loadCurrent()   { return localStorage.getItem(STORE_CURRENT); }
+function saveCurrent(u)  { localStorage.setItem(STORE_CURRENT, u); }
+function clearCurrent()  { localStorage.removeItem(STORE_CURRENT); }
 
-function loadCustomTasks()       { return JSON.parse(localStorage.getItem(STORE_CUSTOM_TASKS) || '[]'); }
-function saveCustomTasks(tasks)  { localStorage.setItem(STORE_CUSTOM_TASKS, JSON.stringify(tasks)); }
-function getAllTasks()            { return [...TASKS, ...loadCustomTasks()]; }
-function getDailyTaskCombined() {
-  const all   = getAllTasks();
-  const epoch = new Date(2026, 0, 1).getTime();
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const dayNum = Math.floor((today.getTime() - epoch) / 86400000);
-  return all[((dayNum % all.length) + all.length) % all.length];
-}
-
-function loadUsers()       { return JSON.parse(localStorage.getItem(STORE_USERS)  || '[]'); }
-function saveUsers(users)  { localStorage.setItem(STORE_USERS, JSON.stringify(users)); }
-function loadCurrent()     { return localStorage.getItem(STORE_CURRENT); }
-function saveCurrent(u)    { localStorage.setItem(STORE_CURRENT, u); }
-function clearCurrent()    { localStorage.removeItem(STORE_CURRENT); }
-
-function getUser(username) {
-  return loadUsers().find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
-}
-function updateUser(updated) {
-  const users = loadUsers().map(u => u.username === updated.username ? updated : u);
-  saveUsers(users);
-}
-
-function createUser(name, username, password, pairCode) {
-  return {
-    name, username, password, pairCode: pairCode.trim().toUpperCase(),
-    points: 0, totalTasks: 0, currentStreak: 0, bestStreak: 0,
-    lastCompletedDate: null, completedDates: [], earlyCompletions: 0,
-    joinDate: todayStr()
-  };
-}
-
-// ── Date helpers ────────────────────────────────────────────
+// ── Date helpers ─────────────────────────────────────────────
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -57,53 +25,34 @@ function daysBefore(n) {
 function formatHebDate(dateStr) {
   if (!dateStr) return '';
   const [y, m, d] = dateStr.split('-').map(Number);
-  const date = new Date(y, m-1, d);
-  return date.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+  return new Date(y, m-1, d).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 function yesterdayStr() { return daysBefore(1); }
 
-// ── Streak management ───────────────────────────────────────
+// ── Streak management ─────────────────────────────────────────
 function recalcStreak(user) {
-  const today = todayStr();
-  const yesterday = yesterdayStr();
-
-  // If last completion was neither today nor yesterday, reset
-  if (user.lastCompletedDate && user.lastCompletedDate !== today && user.lastCompletedDate !== yesterday) {
+  if (user.lastCompletedDate &&
+      user.lastCompletedDate !== todayStr() &&
+      user.lastCompletedDate !== yesterdayStr()) {
     user.currentStreak = 0;
   }
   return user;
 }
 function applyCompletion(user) {
   const today = todayStr();
-  if (user.completedDates.includes(today)) return user; // already done
-
+  if (user.completedDates.includes(today)) return user;
   user.completedDates.push(today);
   user.totalTasks++;
   user.points++;
-
-  // Streak
-  if (user.lastCompletedDate === yesterdayStr()) {
-    user.currentStreak++;
-  } else {
-    user.currentStreak = 1;
-  }
+  user.currentStreak = user.lastCompletedDate === yesterdayStr() ? user.currentStreak + 1 : 1;
   user.lastCompletedDate = today;
   if (user.currentStreak > user.bestStreak) user.bestStreak = user.currentStreak;
-
-  // Early bird
   const hour = new Date().getHours();
   if (hour < 12) user.earlyCompletions = (user.earlyCompletions || 0) + 1;
-
   return user;
 }
 
-// ── Partner lookup ──────────────────────────────────────────
-function findPartner(currentUser) {
-  const users = loadUsers();
-  return users.find(u => u.pairCode === currentUser.pairCode && u.username !== currentUser.username) || null;
-}
-
-// ── Avatar color ────────────────────────────────────────────
+// ── Avatar helpers ────────────────────────────────────────────
 const AVATAR_COLORS = ['#58cc02','#1cb0f6','#ff9600','#ce82ff','#ff4b4b','#46a402','#0991d0','#e6a700'];
 function avatarColor(username) {
   let hash = 0;
@@ -170,32 +119,28 @@ let calYear  = new Date().getFullYear();
 let calMonth = new Date().getMonth(); // 0-indexed
 
 // ════════════════════════════════════════════════════════════
-//  RENDER FUNCTIONS
+//  RENDER FUNCTIONS  (data passed in as parameters)
 // ════════════════════════════════════════════════════════════
 
 function renderNav(user) {
-  user = recalcStreak(user);
   document.getElementById('nav-streak-count').textContent = user.currentStreak;
   document.getElementById('nav-points-count').textContent = user.points;
-  document.getElementById('nav-flame').textContent = user.currentStreak > 0 ? '🔥' : '💤';
+  document.getElementById('nav-flame').textContent        = user.currentStreak > 0 ? '🔥' : '💤';
 }
 
-function renderHome(user) {
-  user = recalcStreak(user);
-  const partner = findPartner(user);
-  const task    = getDailyTaskCombined();
-  const today   = todayStr();
+function renderHome(user, partner, dailyTask) {
+  const today = todayStr();
 
   // Greeting
   document.getElementById('greeting-name').textContent   = user.name.split(' ')[0];
   document.getElementById('banner-streak').textContent   = user.currentStreak;
   document.getElementById('banner-points').textContent   = user.points;
 
-  // Quote
   document.getElementById('daily-quote').textContent = getRandomQuote();
 
+  // Always show set-task section once logged in with a partner
   if (!partner) {
-    // Waiting for partner
+    document.getElementById('set-task-section').classList.add('hidden');
     document.getElementById('waiting-partner').classList.remove('hidden');
     document.getElementById('daily-task-card').classList.add('hidden');
     document.getElementById('pair-progress').classList.add('hidden');
@@ -203,28 +148,37 @@ function renderHome(user) {
     return;
   }
 
+  document.getElementById('set-task-section').classList.remove('hidden');
   document.getElementById('waiting-partner').classList.add('hidden');
-  document.getElementById('daily-task-card').classList.remove('hidden');
   document.getElementById('pair-progress').classList.remove('hidden');
 
-  // Task card
-  document.getElementById('task-date-display').textContent = formatHebDate(today);
-  document.getElementById('task-icon').textContent  = task.icon;
-  document.getElementById('task-title').textContent = task.title;
-  document.getElementById('task-desc').textContent  = task.desc;
-  document.getElementById('task-tip').textContent   = task.tip;
+  if (!dailyTask) {
+    // No task set for today
+    document.getElementById('daily-task-card').classList.remove('hidden');
+    document.getElementById('task-date-display').textContent = formatHebDate(today);
+    document.getElementById('task-icon').textContent  = '❓';
+    document.getElementById('task-title').textContent = 'המשימה של היום עדיין לא הוגדרה';
+    document.getElementById('task-desc').textContent  = 'מי מהוצאות שיגדיר את משימת היום באמצעות הטופס מעל.';
+    document.getElementById('task-tip').textContent   = '';
+    document.getElementById('btn-complete').disabled  = true;
+    document.getElementById('btn-complete').classList.remove('done');
+  } else {
+    document.getElementById('daily-task-card').classList.remove('hidden');
+    document.getElementById('task-date-display').textContent = formatHebDate(today);
+    document.getElementById('task-icon').textContent  = dailyTask.icon  || '🥗';
+    document.getElementById('task-title').textContent = dailyTask.title || '';
+    document.getElementById('task-desc').textContent  = dailyTask.desc  || '';
+    document.getElementById('task-tip').textContent   = dailyTask.tip   || '';
+    const alreadyDone = user.completedDates.includes(today);
+    document.getElementById('btn-complete').classList.toggle('done', alreadyDone);
+    document.getElementById('btn-complete').disabled  = alreadyDone;
+  }
 
   // My avatar
   const myAv = document.getElementById('my-avatar-home');
   myAv.textContent         = avatarLetter(user.name);
   myAv.style.background    = avatarColor(user.username);
   document.getElementById('my-name-home').textContent = user.name;
-
-  // My completion button
-  const btnComplete = document.getElementById('btn-complete');
-  const alreadyDone = user.completedDates.includes(today);
-  btnComplete.classList.toggle('done', alreadyDone);
-  btnComplete.disabled = alreadyDone;
 
   // Partner avatar
   const pAv = document.getElementById('partner-avatar-home');
@@ -275,44 +229,33 @@ function renderWeekDots(containerId, user, today) {
   }
 }
 
-function renderProfile(user) {
-  user = recalcStreak(user);
-
-  // Avatar
+function renderProfile(user, customTasks) {
   const av = document.getElementById('profile-avatar');
   av.textContent      = avatarLetter(user.name);
   av.style.background = avatarColor(user.username);
 
   document.getElementById('profile-name').textContent     = user.name;
   document.getElementById('profile-username').textContent = '@' + user.username;
+  document.getElementById('stat-streak').textContent      = user.currentStreak;
+  document.getElementById('stat-best').textContent        = user.bestStreak;
+  document.getElementById('stat-points').textContent      = user.points;
+  document.getElementById('stat-tasks').textContent       = user.totalTasks;
 
-  // Stats
-  document.getElementById('stat-streak').textContent = user.currentStreak;
-  document.getElementById('stat-best').textContent   = user.bestStreak;
-  document.getElementById('stat-points').textContent = user.points;
-  document.getElementById('stat-tasks').textContent  = user.totalTasks;
-
-  // Calendar
   renderCalendar(user);
-
-  // Achievements
   renderAchievements(user);
-
-  // Custom tasks
-  renderCustomTasks();
+  renderCustomTasksList(customTasks, user.pairCode);
 }
 
-function renderCustomTasks() {
-  const list   = document.getElementById('custom-tasks-list');
-  const custom = loadCustomTasks();
+function renderCustomTasksList(tasks, pairCode) {
+  const list = document.getElementById('custom-tasks-list');
   list.innerHTML = '';
 
-  if (custom.length === 0) {
-    list.innerHTML = '<p class="empty-tasks-msg">עדיין לא הוספתם משימות אישיות</p>';
+  if (!tasks || tasks.length === 0) {
+    list.innerHTML = '<p class="empty-tasks-msg">עדיין לא הוספתם משימות לזוג</p>';
     return;
   }
 
-  custom.forEach((task, idx) => {
+  tasks.forEach((task, idx) => {
     const item = document.createElement('div');
     item.className = 'custom-task-item';
     item.innerHTML = `
@@ -321,19 +264,21 @@ function renderCustomTasks() {
         <div class="ct-title">${task.title}</div>
         ${task.desc ? `<div class="ct-desc">${task.desc}</div>` : ''}
       </div>
-      <span class="custom-task-badge">אישי</span>
+      <span class="custom-task-badge">זוגי</span>
       <button class="btn-delete-task" data-idx="${idx}" title="מחק משימה">🗑</button>
     `;
     list.appendChild(item);
   });
 
   list.querySelectorAll('.btn-delete-task').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const i = parseInt(btn.dataset.idx);
-      const tasks = loadCustomTasks();
-      tasks.splice(i, 1);
-      saveCustomTasks(tasks);
-      renderCustomTasks();
+    btn.addEventListener('click', async () => {
+      const i    = parseInt(btn.dataset.idx);
+      const curr = await API.getPairTasks(pairCode);
+      curr.splice(i, 1);
+      await API.savePairTasks(pairCode, curr);
+      const uname = loadCurrent();
+      const u     = await API.getUser(uname);
+      renderProfile(recalcStreak(u), curr);
       showToast('המשימה נמחקה', 'info');
     });
   });
@@ -416,48 +361,47 @@ function showPage(id) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  AUTH
+//  FULL APP RENDER  (async)
 // ════════════════════════════════════════════════════════════
 
-function login(username, password) {
-  const user = getUser(username);
-  if (!user)                        return 'שם משתמש לא קיים';
-  if (user.password !== password)   return 'סיסמה שגויה';
-  saveCurrent(user.username);
-  return null;
-}
+let pollInterval = null;
 
-function register(name, username, password, pairCode) {
-  if (!name || !username || !password || !pairCode) return 'כל השדות חובה';
-  if (password.length < 4)                          return 'הסיסמה חייבת להכיל לפחות 4 תווים';
-  if (getUser(username))                            return 'שם המשתמש כבר תפוס';
-  const users = loadUsers();
-  const newUser = createUser(name, username, password, pairCode);
-  users.push(newUser);
-  saveUsers(users);
-  saveCurrent(newUser.username);
-  return null;
-}
-
-// ════════════════════════════════════════════════════════════
-//  FULL APP RENDER
-// ════════════════════════════════════════════════════════════
-
-function renderApp() {
+async function renderApp() {
   const username = loadCurrent();
   if (!username) { showScreen('screen-auth'); return; }
-  let user = getUser(username);
+
+  let user = await API.getUser(username);
   if (!user) { clearCurrent(); showScreen('screen-auth'); return; }
 
-  // On each load, check if streak should reset due to missed day
+  const streakBefore = user.currentStreak;
   user = recalcStreak(user);
-  updateUser(user);
+  if (user.currentStreak !== streakBefore) await API.updateUser(user);
+
+  const [partner, dailyTask] = await Promise.all([
+    API.getPartner(user.pairCode, user.username),
+    API.getDailyTask(todayStr())
+  ]);
 
   showScreen('screen-app');
   renderNav(user);
-  renderHome(user);
-  renderProfile(user);
+  renderHome(user, partner, dailyTask);
+  renderProfile(user, await API.getPairTasks(user.pairCode));
   showPage('page-home');
+
+  // Poll every 8 s to sync partner + daily task changes
+  clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    const uname = loadCurrent();
+    if (!uname) { clearInterval(pollInterval); return; }
+    const [freshUser, freshPartner, freshTask] = await Promise.all([
+      API.getUser(uname),
+      API.getPartner(user.pairCode, uname),
+      API.getDailyTask(todayStr())
+    ]);
+    if (!freshUser) return;
+    renderNav(recalcStreak(freshUser));
+    renderHome(recalcStreak(freshUser), freshPartner, freshTask);
+  }, 8000);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -477,107 +421,150 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Login ──
-  document.getElementById('form-login').addEventListener('submit', e => {
+  document.getElementById('form-login').addEventListener('submit', async e => {
     e.preventDefault();
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
-    const err = login(username, password);
-    const errEl = document.getElementById('login-error');
-    if (err) { errEl.textContent = err; errEl.classList.remove('hidden'); }
-    else { errEl.classList.add('hidden'); renderApp(); }
+    const errEl    = document.getElementById('login-error');
+    const result   = await API.login(username, password);
+    if (result.error) { errEl.textContent = result.error; errEl.classList.remove('hidden'); }
+    else { errEl.classList.add('hidden'); saveCurrent(result.user.username); await renderApp(); }
   });
 
   // ── Register ──
-  document.getElementById('form-register').addEventListener('submit', e => {
+  document.getElementById('form-register').addEventListener('submit', async e => {
     e.preventDefault();
-    const name      = document.getElementById('reg-name').value.trim();
-    const username  = document.getElementById('reg-username').value.trim();
-    const password  = document.getElementById('reg-password').value;
-    const pairCode  = document.getElementById('reg-paircode').value.trim();
-    const err = register(name, username, password, pairCode);
-    const errEl = document.getElementById('reg-error');
-    if (err) { errEl.textContent = err; errEl.classList.remove('hidden'); }
-    else { errEl.classList.add('hidden'); renderApp(); }
+    const name     = document.getElementById('reg-name').value.trim();
+    const username = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const pairCode = document.getElementById('reg-paircode').value.trim();
+    const errEl    = document.getElementById('reg-error');
+    const result   = await API.register(name, username, password, pairCode);
+    if (result.error) { errEl.textContent = result.error; errEl.classList.remove('hidden'); }
+    else { errEl.classList.add('hidden'); saveCurrent(result.user.username); await renderApp(); }
   });
 
   // ── Logout ──
   document.getElementById('btn-logout').addEventListener('click', () => {
+    clearInterval(pollInterval);
     clearCurrent();
     showScreen('screen-auth');
   });
 
   // ── Nav tabs ──
   document.querySelectorAll('.nav-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const page = 'page-' + tab.dataset.page;
+    tab.addEventListener('click', async () => {
       const username = loadCurrent();
       if (!username) return;
-      let user = getUser(username);
+      const user = await API.getUser(username);
       if (!user) return;
-      if (tab.dataset.page === 'profile') renderProfile(user);
-      if (tab.dataset.page === 'home')    renderHome(user);
-      showPage(page);
+      if (tab.dataset.page === 'profile') {
+        const tasks = await API.getPairTasks(user.pairCode);
+        renderProfile(recalcStreak(user), tasks);
+      }
+      if (tab.dataset.page === 'home') {
+        const [partner, dailyTask] = await Promise.all([
+          API.getPartner(user.pairCode, user.username),
+          API.getDailyTask(todayStr())
+        ]);
+        renderHome(recalcStreak(user), partner, dailyTask);
+      }
+      showPage('page-' + tab.dataset.page);
     });
   });
 
+  // ── Set today’s task toggle ──
+  document.getElementById('set-task-toggle').addEventListener('click', () => {
+    const form  = document.getElementById('form-set-task');
+    const arrow = document.getElementById('set-task-arrow');
+    const open  = form.classList.toggle('hidden');
+    arrow.textContent = open ? '▼' : '▲';
+  });
+
+  // ── Set today’s task submit ──
+  document.getElementById('form-set-task').addEventListener('submit', async e => {
+    e.preventDefault();
+    const icon  = document.getElementById('set-task-icon').value.trim()  || '🥗';
+    const title = document.getElementById('set-task-title').value.trim();
+    const desc  = document.getElementById('set-task-desc').value.trim();
+    const tip   = document.getElementById('set-task-tip').value.trim();
+    if (!title) return;
+    const username = loadCurrent();
+    const user     = await API.getUser(username);
+    if (!user) return;
+    const task = { icon, title, desc, tip, setBy: user.name, setAt: new Date().toISOString() };
+    await API.setDailyTask(todayStr(), task);
+    document.getElementById('set-task-icon').value  = '';
+    document.getElementById('set-task-title').value = '';
+    document.getElementById('set-task-desc').value  = '';
+    document.getElementById('set-task-tip').value   = '';
+    document.getElementById('form-set-task').classList.add('hidden');
+    document.getElementById('set-task-arrow').textContent = '▼';
+    const partner = await API.getPartner(user.pairCode, user.username);
+    renderHome(recalcStreak(user), partner, task);
+    showToast('✅ משימת היום נשמרה!', 'success');
+  });
+
   // ── Complete task button ──
-  document.getElementById('btn-complete').addEventListener('click', () => {
+  document.getElementById('btn-complete').addEventListener('click', async () => {
     const username = loadCurrent();
     if (!username) return;
-    let user = getUser(username);
-    if (!user) return;
-
-    const today = todayStr();
-    if (user.completedDates.includes(today)) return;
+    let user = await API.getUser(username);
+    if (!user || user.completedDates.includes(todayStr())) return;
 
     user = applyCompletion(user);
-    updateUser(user);
+    user = await API.updateUser(user);
 
-    // Animate button
     const btn = document.getElementById('btn-complete');
-    btn.classList.add('done');
-    btn.disabled = true;
+    btn.classList.add('done'); btn.disabled = true;
     btn.classList.add('pop');
     setTimeout(() => btn.classList.remove('pop'), 350);
 
     showToast(`🎉 נהדר! +1 נקודה! רצף: ${user.currentStreak} ימים 🔥`, 'success');
     launchConfetti();
 
+    const [partner, dailyTask] = await Promise.all([
+      API.getPartner(user.pairCode, user.username),
+      API.getDailyTask(todayStr())
+    ]);
     renderNav(user);
-    renderHome(user);
+    renderHome(user, partner, dailyTask);
   });
 
   // ── Add custom task ──
-  document.getElementById('form-add-task').addEventListener('submit', e => {
+  document.getElementById('form-add-task').addEventListener('submit', async e => {
     e.preventDefault();
     const icon  = document.getElementById('new-task-icon').value.trim()  || '📌';
     const title = document.getElementById('new-task-title').value.trim();
     const desc  = document.getElementById('new-task-desc').value.trim();
     const tip   = document.getElementById('new-task-tip').value.trim();
     if (!title) return;
-    const tasks = loadCustomTasks();
+    const username = loadCurrent();
+    const user     = await API.getUser(username);
+    if (!user) return;
+    const tasks = await API.getPairTasks(user.pairCode);
     tasks.push({ icon, title, desc, tip, custom: true });
-    saveCustomTasks(tasks);
+    await API.savePairTasks(user.pairCode, tasks);
     document.getElementById('new-task-icon').value  = '';
     document.getElementById('new-task-title').value = '';
     document.getElementById('new-task-desc').value  = '';
     document.getElementById('new-task-tip').value   = '';
-    renderCustomTasks();
+    renderCustomTasksList(tasks, user.pairCode);
     showToast(`✅ המשימה "${title}" נוספה לרוטציה!`, 'success');
   });
 
   // ── Calendar navigation ──
-  document.getElementById('cal-prev').addEventListener('click', () => {
+  document.getElementById('cal-prev').addEventListener('click', async () => {
     calMonth--;
     if (calMonth < 0) { calMonth = 11; calYear--; }
     const username = loadCurrent();
-    if (username) renderCalendar(getUser(username));
+    if (username) renderCalendar(await API.getUser(username));
   });
-  document.getElementById('cal-next').addEventListener('click', () => {
+  document.getElementById('cal-next').addEventListener('click', async () => {
     calMonth++;
     if (calMonth > 11) { calMonth = 0; calYear++; }
     const username = loadCurrent();
-    if (username) renderCalendar(getUser(username));
+    if (username) renderCalendar(await API.getUser(username));
   });
 
   // ── Initial render ──

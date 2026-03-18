@@ -1,0 +1,13 @@
+{
+  "name": "aklTov",
+  "version": "1.0.0",
+  "description": "אכל טוב – אתגר תזונה יומי בזוגות",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
