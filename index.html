@@ -108,10 +108,10 @@
         <p class="hint">ברגע שהשותף שלך יירשם עם אותו קוד – האתגר יתחיל!</p>
       </div>
 
-      <!-- Set today's task form -->
+      <!-- Set task for partner -->
       <div id="set-task-section" class="task-card hidden">
         <div class="set-task-header" id="set-task-toggle">
-          <span>✏️ הגדרת משימת היום</span>
+          <span>✏️ הגדר משימה לשותף</span>
           <span id="set-task-arrow">▼</span>
         </div>
         <form id="form-set-task" class="set-task-form hidden">
@@ -129,19 +129,15 @@
             <label>תיאור</label>
             <input type="text" id="set-task-desc" placeholder="הסבר קצר" />
           </div>
-          <div class="input-group">
-            <label>טיפ</label>
-            <input type="text" id="set-task-tip" placeholder="טיפ לביצוע" />
-          </div>
-          <button type="submit" class="btn btn-primary btn-full">📌 שמור כמשימת היום</button>
+          <button type="submit" class="btn btn-primary btn-full">📌 שמור כמשימה לשותף</button>
         </form>
       </div>
 
-      <!-- Daily Task Card -->
+      <!-- Daily Task Card (my task, assigned by partner) -->
       <div id="daily-task-card" class="task-card hidden">
         <div class="task-card-header">
           <span class="task-date" id="task-date-display"></span>
-          <span class="task-badge">אתגר יומי</span>
+          <span class="task-badge">המשימה שלי</span>
         </div>
         <div class="task-icon-big" id="task-icon">🥗</div>
         <h3 class="task-title" id="task-title">טוען...</h3>
@@ -162,8 +158,21 @@
               <span class="check-label">סמן כהושלם</span>
             </button>
           </div>
+        </div>
+      </div>
 
-          <!-- Partner completion -->
+      <!-- Partner's Task Card (task assigned to partner, set by me) -->
+      <div id="partner-task-card" class="task-card hidden">
+        <div class="task-card-header">
+          <span class="task-date" id="partner-task-label"></span>
+          <span class="task-badge" style="background:var(--blue);color:#fff">משימת השותף</span>
+        </div>
+        <div class="task-icon-big" id="partner-task-icon">🥗</div>
+        <h3 class="task-title" id="partner-task-title"></h3>
+        <p class="task-desc" id="partner-task-desc"></p>
+
+        <!-- Partner completion row -->
+        <div class="completion-section">
           <div class="completion-row">
             <div class="completion-user">
               <div class="avatar" id="partner-avatar-home"></div>

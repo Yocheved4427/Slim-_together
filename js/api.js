@@ -71,15 +71,24 @@ const API = {
     await db.collection('pairTasks').doc(pairCode).set({ tasks });
   },
 
-  // ── Daily task (set manually each day) ───────────────────
+  // ── Daily tasks – each partner sets a task for the other ──
 
-  async getDailyTask(dateStr) {
+  // Returns { tasks: { [username]: { icon, title, desc, setBy, setAt } } }
+  async getDailyTasks(dateStr) {
     const doc = await db.collection('dailyTasks').doc(dateStr).get();
-    return doc.exists ? doc.data() : null;
+    if (!doc.exists) return { tasks: {} };
+    const data = doc.data();
+    // Support legacy format (single shared task stored without tasks wrapper)
+    if (data && !data.tasks) return { tasks: {} };
+    return data;
   },
 
-  async setDailyTask(dateStr, task) {
-    await db.collection('dailyTasks').doc(dateStr).set(task);
+  // Sets the task assigned to targetUsername (by the logged-in user / their partner)
+  async setDailyTaskForUser(dateStr, targetUsername, task) {
+    await db.collection('dailyTasks').doc(dateStr).set(
+      { tasks: { [targetUsername]: task } },
+      { merge: true }
+    );
   }
 };
 

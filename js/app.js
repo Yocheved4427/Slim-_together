@@ -128,7 +128,7 @@ function renderNav(user) {
   document.getElementById('nav-flame').textContent        = user.currentStreak > 0 ? '🔥' : '💤';
 }
 
-function renderHome(user, partner, dailyTask) {
+function renderHome(user, partner, dailyTasks) {
   const today = todayStr();
 
   // Greeting
@@ -138,55 +138,82 @@ function renderHome(user, partner, dailyTask) {
 
   document.getElementById('daily-quote').textContent = getRandomQuote();
 
-  // Always show set-task section once logged in with a partner
+  // No partner yet
   if (!partner) {
     document.getElementById('set-task-section').classList.add('hidden');
     document.getElementById('waiting-partner').classList.remove('hidden');
     document.getElementById('daily-task-card').classList.add('hidden');
+    document.getElementById('partner-task-card').classList.add('hidden');
     document.getElementById('pair-progress').classList.add('hidden');
     document.getElementById('my-pair-code').textContent = user.pairCode;
     return;
+  }
+
+  const tasks   = (dailyTasks && dailyTasks.tasks) ? dailyTasks.tasks : {};
+  // myTask  = task the partner set for me
+  // partnerTask = task I set for my partner
+  const myTask      = tasks[user.username]    || null;
+  const partnerTask = tasks[partner.username] || null;
+
+  // Update set-task toggle label to reflect current status
+  const setTaskLabel = document.querySelector('#set-task-toggle span:first-child');
+  if (setTaskLabel) {
+    setTaskLabel.textContent = partnerTask
+      ? `✏️ שנה משימה לשותף ✅`
+      : `✏️ הגדר משימה לשותף`;
   }
 
   document.getElementById('set-task-section').classList.remove('hidden');
   document.getElementById('waiting-partner').classList.add('hidden');
   document.getElementById('pair-progress').classList.remove('hidden');
 
-  if (!dailyTask) {
-    // No task set for today
-    document.getElementById('daily-task-card').classList.remove('hidden');
-    document.getElementById('task-date-display').textContent = formatHebDate(today);
-    document.getElementById('task-icon').textContent  = '❓';
-    document.getElementById('task-title').textContent = 'המשימה של היום עדיין לא הוגדרה';
-    document.getElementById('task-desc').textContent  = 'מי מהוצאות שיגדיר את משימת היום באמצעות הטופס מעל.';
-    document.getElementById('task-tip').textContent   = '';
+  // ── My task card (partner assigned this to me) ──
+  document.getElementById('daily-task-card').classList.remove('hidden');
+  document.getElementById('task-date-display').textContent = formatHebDate(today);
+  document.getElementById('task-tip').textContent = getDailyTip();
+
+  if (!myTask) {
+    document.getElementById('task-icon').textContent  = '⏳';
+    document.getElementById('task-title').textContent = `${partner.name.split(' ')[0]} עוד לא הגדיר משימה בשבילך`;
+    document.getElementById('task-desc').textContent  = 'צפה שהשותף יגדיר את המשימה שלך בקרוב.';
     document.getElementById('btn-complete').disabled  = true;
     document.getElementById('btn-complete').classList.remove('done');
   } else {
-    document.getElementById('daily-task-card').classList.remove('hidden');
-    document.getElementById('task-date-display').textContent = formatHebDate(today);
-    document.getElementById('task-icon').textContent  = dailyTask.icon  || '🥗';
-    document.getElementById('task-title').textContent = dailyTask.title || '';
-    document.getElementById('task-desc').textContent  = dailyTask.desc  || '';
-    document.getElementById('task-tip').textContent   = dailyTask.tip   || '';
+    document.getElementById('task-icon').textContent  = myTask.icon  || '🥗';
+    document.getElementById('task-title').textContent = myTask.title || '';
+    document.getElementById('task-desc').textContent  = myTask.desc  || '';
     const alreadyDone = user.completedDates.includes(today);
     document.getElementById('btn-complete').classList.toggle('done', alreadyDone);
     document.getElementById('btn-complete').disabled  = alreadyDone;
   }
 
-  // My avatar
+  // My avatar (in my task card)
   const myAv = document.getElementById('my-avatar-home');
-  myAv.textContent         = avatarLetter(user.name);
-  myAv.style.background    = avatarColor(user.username);
+  myAv.textContent      = avatarLetter(user.name);
+  myAv.style.background = avatarColor(user.username);
   document.getElementById('my-name-home').textContent = user.name;
 
-  // Partner avatar
+  // ── Partner’s task card (I assigned this to partner) ──
+  document.getElementById('partner-task-card').classList.remove('hidden');
+  document.getElementById('partner-task-label').textContent =
+    `המשימה של ${partner.name.split(' ')[0]}`;
+
+  if (!partnerTask) {
+    document.getElementById('partner-task-icon').textContent  = '❓';
+    document.getElementById('partner-task-title').textContent = 'עדיין לא הגדרת משימה לשותף';
+    document.getElementById('partner-task-desc').textContent  = 'השתמש בטופס למעלה כדי להגדיר משימה.';
+  } else {
+    document.getElementById('partner-task-icon').textContent  = partnerTask.icon  || '🥗';
+    document.getElementById('partner-task-title').textContent = partnerTask.title || '';
+    document.getElementById('partner-task-desc').textContent  = partnerTask.desc  || '';
+  }
+
+  // Partner avatar & status (in partner task card)
   const pAv = document.getElementById('partner-avatar-home');
   pAv.textContent       = avatarLetter(partner.name);
   pAv.style.background  = avatarColor(partner.username);
   document.getElementById('partner-name-home').textContent = partner.name;
 
-  // Partner status
   const partnerDone = partner.completedDates.includes(today);
   const pStatus = document.getElementById('partner-status');
   if (partnerDone) {
@@ -377,14 +404,14 @@ async function renderApp() {
   user = recalcStreak(user);
   if (user.currentStreak !== streakBefore) await API.updateUser(user);
 
-  const [partner, dailyTask] = await Promise.all([
+  const [partner, dailyTasks] = await Promise.all([
     API.getPartner(user.pairCode, user.username),
-    API.getDailyTask(todayStr())
+    API.getDailyTasks(todayStr())
   ]);
 
   showScreen('screen-app');
   renderNav(user);
-  renderHome(user, partner, dailyTask);
+  renderHome(user, partner, dailyTasks);
   renderProfile(user, await API.getPairTasks(user.pairCode));
   showPage('page-home');
 
@@ -393,14 +420,14 @@ async function renderApp() {
   pollInterval = setInterval(async () => {
     const uname = loadCurrent();
     if (!uname) { clearInterval(pollInterval); return; }
-    const [freshUser, freshPartner, freshTask] = await Promise.all([
+    const [freshUser, freshPartner, freshTasks] = await Promise.all([
       API.getUser(uname),
       API.getPartner(user.pairCode, uname),
-      API.getDailyTask(todayStr())
+      API.getDailyTasks(todayStr())
     ]);
     if (!freshUser) return;
     renderNav(recalcStreak(freshUser));
-    renderHome(recalcStreak(freshUser), freshPartner, freshTask);
+    renderHome(recalcStreak(freshUser), freshPartner, freshTasks);
   }, 8000);
 }
 
@@ -463,11 +490,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProfile(recalcStreak(user), tasks);
       }
       if (tab.dataset.page === 'home') {
-        const [partner, dailyTask] = await Promise.all([
+        const [partner, dailyTasks] = await Promise.all([
           API.getPartner(user.pairCode, user.username),
-          API.getDailyTask(todayStr())
+          API.getDailyTasks(todayStr())
         ]);
-        renderHome(recalcStreak(user), partner, dailyTask);
+        renderHome(recalcStreak(user), partner, dailyTasks);
       }
       showPage('page-' + tab.dataset.page);
     });
@@ -481,27 +508,35 @@ document.addEventListener('DOMContentLoaded', () => {
     arrow.textContent = open ? '▼' : '▲';
   });
 
-  // ── Set today’s task submit ──
+  // ── Set today's task for partner ──
   document.getElementById('form-set-task').addEventListener('submit', async e => {
     e.preventDefault();
     const icon  = document.getElementById('set-task-icon').value.trim()  || '🥗';
     const title = document.getElementById('set-task-title').value.trim();
     const desc  = document.getElementById('set-task-desc').value.trim();
-    const tip   = document.getElementById('set-task-tip').value.trim();
+  // ── Set today's task for partner ──
+  document.getElementById('form-set-task').addEventListener('submit', async e => {
+    e.preventDefault();
+    const icon  = document.getElementById('set-task-icon').value.trim()  || '🥗';
+    const title = document.getElementById('set-task-title').value.trim();
+    const desc  = document.getElementById('set-task-desc').value.trim();
     if (!title) return;
     const username = loadCurrent();
     const user     = await API.getUser(username);
     if (!user) return;
-    const task = { icon, title, desc, tip, setBy: user.name, setAt: new Date().toISOString() };
-    await API.setDailyTask(todayStr(), task);
+    const partner  = await API.getPartner(user.pairCode, user.username);
+    if (!partner) return;
+    const task = { icon, title, desc, setBy: user.name, setAt: new Date().toISOString() };
+    await API.setDailyTaskForUser(todayStr(), partner.username, task);
     document.getElementById('set-task-icon').value  = '';
     document.getElementById('set-task-title').value = '';
     document.getElementById('set-task-desc').value  = '';
-    document.getElementById('set-task-tip').value   = '';
     document.getElementById('form-set-task').classList.add('hidden');
     document.getElementById('set-task-arrow').textContent = '▼';
-    const partner = await API.getPartner(user.pairCode, user.username);
-    renderHome(recalcStreak(user), partner, task);
+    const dailyTasks = await API.getDailyTasks(todayStr());
+    renderHome(recalcStreak(user), partner, dailyTasks);
+    showToast(`✅ משימה נשמרה עבור ${partner.name.split(' ')[0]}!`, 'success');
+  });
     showToast('✅ משימת היום נשמרה!', 'success');
   });
 
@@ -523,12 +558,12 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`🎉 נהדר! +1 נקודה! רצף: ${user.currentStreak} ימים 🔥`, 'success');
     launchConfetti();
 
-    const [partner, dailyTask] = await Promise.all([
+    const [partner, dailyTasks] = await Promise.all([
       API.getPartner(user.pairCode, user.username),
-      API.getDailyTask(todayStr())
+      API.getDailyTasks(todayStr())
     ]);
     renderNav(user);
-    renderHome(user, partner, dailyTask);
+    renderHome(user, partner, dailyTasks);
   });
 
   // ── Add custom task ──
