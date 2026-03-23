@@ -514,12 +514,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const icon  = document.getElementById('set-task-icon').value.trim()  || '🥗';
     const title = document.getElementById('set-task-title').value.trim();
     const desc  = document.getElementById('set-task-desc').value.trim();
-  // ── Set today's task for partner ──
-  document.getElementById('form-set-task').addEventListener('submit', async e => {
-    e.preventDefault();
-    const icon  = document.getElementById('set-task-icon').value.trim()  || '🥗';
-    const title = document.getElementById('set-task-title').value.trim();
-    const desc  = document.getElementById('set-task-desc').value.trim();
     if (!title) return;
     const username = loadCurrent();
     const user     = await API.getUser(username);
@@ -536,8 +530,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dailyTasks = await API.getDailyTasks(todayStr());
     renderHome(recalcStreak(user), partner, dailyTasks);
     showToast(`✅ משימה נשמרה עבור ${partner.name.split(' ')[0]}!`, 'success');
-  });
-    showToast('✅ משימת היום נשמרה!', 'success');
   });
 
   // ── Complete task button ──
