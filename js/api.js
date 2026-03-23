@@ -89,6 +89,45 @@ const API = {
       { tasks: { [targetUsername]: task } },
       { merge: true }
     );
+  },
+
+  // ── Friends / Following ───────────────────────────────────
+
+  async searchUser(username) {
+    const key = username.toLowerCase().trim();
+    if (!key) return null;
+    const doc = await db.collection('users').doc(key).get();
+    return doc.exists ? _sanitize(doc.data()) : null;
+  },
+
+  async followUser(myUsername, friendUsername) {
+    const myKey     = myUsername.toLowerCase();
+    const friendKey = friendUsername.toLowerCase();
+    const doc = await db.collection('users').doc(myKey).get();
+    if (!doc.exists) return;
+    const following = doc.data().following || [];
+    if (!following.includes(friendKey)) {
+      following.push(friendKey);
+      await db.collection('users').doc(myKey).update({ following });
+    }
+  },
+
+  async unfollowUser(myUsername, friendUsername) {
+    const myKey     = myUsername.toLowerCase();
+    const friendKey = friendUsername.toLowerCase();
+    const doc = await db.collection('users').doc(myKey).get();
+    if (!doc.exists) return;
+    const following = (doc.data().following || []).filter(u => u !== friendKey);
+    await db.collection('users').doc(myKey).update({ following });
+  },
+
+  async getFollowingUsers(myUsername) {
+    const doc = await db.collection('users').doc(myUsername.toLowerCase()).get();
+    if (!doc.exists) return [];
+    const following = doc.data().following || [];
+    if (following.length === 0) return [];
+    const docs = await Promise.all(following.map(u => db.collection('users').doc(u).get()));
+    return docs.filter(d => d.exists).map(d => _sanitize(d.data()));
   }
 };
 

@@ -372,6 +372,101 @@ function renderAchievements(user) {
 }
 
 // ════════════════════════════════════════════════════════════
+//  FRIENDS
+// ════════════════════════════════════════════════════════════
+
+async function renderFriends(currentUser) {
+  const list = document.getElementById('following-list');
+  const friends = await API.getFollowingUsers(currentUser.username);
+
+  if (friends.length === 0) {
+    list.innerHTML = '<p class="empty-friends-msg">עוד לא עוקב אחרי אף אחד</p>';
+    return;
+  }
+
+  list.innerHTML = '';
+  friends.forEach(friend => {
+    const card = document.createElement('div');
+    card.className = 'friend-card';
+    card.innerHTML = `
+      <div class="avatar friend-card-avatar" style="background:${avatarColor(friend.username)}">${avatarLetter(friend.name)}</div>
+      <div class="friend-card-info">
+        <div class="friend-card-name">${friend.name}</div>
+        <div class="friend-card-meta">🔥 רצף: ${friend.currentStreak} &nbsp;⭐ נקודות: ${friend.points}</div>
+      </div>
+      <button class="btn-unfollow" data-uname="${friend.username}">בטל מעקב</button>
+    `;
+    card.querySelector('.friend-card-info').addEventListener('click', () => showFriendModal(friend));
+    card.querySelector('.friend-card-avatar').addEventListener('click', () => showFriendModal(friend));
+    card.querySelector('.friend-card-name').addEventListener('click', () => showFriendModal(friend));
+    card.querySelector('.btn-unfollow').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await API.unfollowUser(currentUser.username, friend.username);
+      showToast(`ביטלת מעקב אחרי ${friend.name}`, 'info');
+      await renderFriends(currentUser);
+    });
+    list.appendChild(card);
+  });
+}
+
+function showFriendModal(friend) {
+  const modal = document.getElementById('friend-modal');
+
+  const av = document.getElementById('friend-modal-avatar');
+  av.textContent      = avatarLetter(friend.name);
+  av.style.background = avatarColor(friend.username);
+  document.getElementById('friend-modal-name').textContent     = friend.name;
+  document.getElementById('friend-modal-username').textContent = '@' + friend.username;
+  document.getElementById('friend-stat-streak').textContent    = friend.currentStreak;
+  document.getElementById('friend-stat-best').textContent      = friend.bestStreak;
+  document.getElementById('friend-stat-points').textContent    = friend.points;
+  document.getElementById('friend-stat-tasks').textContent     = friend.totalTasks;
+
+  // Week dots
+  const today  = todayStr();
+  const dotsEl = document.getElementById('friend-modal-week-dots');
+  dotsEl.innerHTML = '';
+  const DAYS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+  for (let i = 6; i >= 0; i--) {
+    const ds   = daysBefore(i);
+    const date = new Date(ds + 'T00:00:00');
+    const dot  = document.createElement('div');
+    if (ds === today) {
+      const done = (friend.completedDates || []).includes(ds);
+      dot.className = `week-dot ${done ? 'done' : 'today'}`;
+      dot.textContent = done ? '✓' : DAYS[date.getDay()];
+    } else if (ds < today) {
+      const done = (friend.completedDates || []).includes(ds);
+      dot.className = `week-dot ${done ? 'done' : 'missed'}`;
+      dot.textContent = done ? '✓' : '✗';
+    } else {
+      dot.className = 'week-dot future';
+      dot.textContent = DAYS[date.getDay()];
+    }
+    dot.title = formatHebDate(ds);
+    dotsEl.appendChild(dot);
+  }
+
+  // Achievements
+  const achGrid = document.getElementById('friend-modal-achievements');
+  achGrid.innerHTML = '';
+  ACHIEVEMENTS.forEach(ach => {
+    const unlocked = ach.condition(friend);
+    const el = document.createElement('div');
+    el.className = `achievement ${unlocked ? 'unlocked' : 'locked'}`;
+    el.innerHTML = `
+      <span class="achievement-icon">${ach.icon}</span>
+      <div class="achievement-name">${ach.name}</div>
+      <div class="achievement-desc">${ach.desc}</div>
+    `;
+    achGrid.appendChild(el);
+  });
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+// ════════════════════════════════════════════════════════════
 //  SCREEN / PAGE SWITCH
 // ════════════════════════════════════════════════════════════
 
@@ -496,6 +591,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ]);
         renderHome(recalcStreak(user), partner, dailyTasks);
       }
+      if (tab.dataset.page === 'friends') {
+        await renderFriends(recalcStreak(user));
+      }
       showPage('page-' + tab.dataset.page);
     });
   });
@@ -592,6 +690,68 @@ document.addEventListener('DOMContentLoaded', () => {
     if (calMonth > 11) { calMonth = 0; calYear++; }
     const username = loadCurrent();
     if (username) renderCalendar(await API.getUser(username));
+  });
+
+  // ── Friend search ──
+  document.getElementById('btn-search-friend').addEventListener('click', async () => {
+    const query   = document.getElementById('friends-search-input').value.trim();
+    const resultEl = document.getElementById('friend-search-result');
+    if (!query) return;
+    resultEl.innerHTML = '<p class="empty-friends-msg">מחפש...</p>';
+    const found = await API.searchUser(query);
+    const me    = loadCurrent();
+    if (!found || found.username === me) {
+      resultEl.innerHTML = '<p class="empty-friends-msg">לא נמצא משתמש עם שם זה</p>';
+      return;
+    }
+    const myUser   = await API.getUser(me);
+    const alreadyF = (myUser.following || []).includes(found.username);
+    resultEl.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'friend-card';
+    card.innerHTML = `
+      <div class="avatar friend-card-avatar" style="background:${avatarColor(found.username)}">${avatarLetter(found.name)}</div>
+      <div class="friend-card-info">
+        <div class="friend-card-name">${found.name}</div>
+        <div class="friend-card-meta">🔥 רצף: ${found.currentStreak} &nbsp;⭐ נקודות: ${found.points}</div>
+      </div>
+      <button class="btn-follow ${alreadyF ? 'following' : ''}" data-uname="${found.username}">
+        ${alreadyF ? 'עוקב ✓' : '+ עקוב'}
+      </button>
+    `;
+    card.querySelector('.friend-card-info').addEventListener('click', () => showFriendModal(found));
+    card.querySelector('.friend-card-avatar').addEventListener('click', () => showFriendModal(found));
+    const followBtn = card.querySelector('.btn-follow');
+    followBtn.addEventListener('click', async () => {
+      if (followBtn.classList.contains('following')) {
+        await API.unfollowUser(me, found.username);
+        followBtn.textContent = '+ עקוב';
+        followBtn.classList.remove('following');
+        showToast(`ביטלת מעקב אחרי ${found.name}`, 'info');
+      } else {
+        await API.followUser(me, found.username);
+        followBtn.textContent = 'עוקב ✓';
+        followBtn.classList.add('following');
+        showToast(`אתה עוקב אחרי ${found.name}! 👋`, 'success');
+      }
+    });
+    resultEl.appendChild(card);
+  });
+
+  document.getElementById('friends-search-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('btn-search-friend').click();
+  });
+
+  // ── Friend modal close ──
+  document.getElementById('friend-modal-close').addEventListener('click', () => {
+    document.getElementById('friend-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+  });
+  document.getElementById('friend-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('friend-modal')) {
+      document.getElementById('friend-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
   });
 
   // ── Initial render ──

@@ -70,6 +70,7 @@
       <div class="nav-logo">🥦 אכל טוב</div>
       <div class="nav-tabs">
         <button class="nav-tab active" data-page="home">🏠 בית</button>
+        <button class="nav-tab" data-page="friends">👥 חברים</button>
         <button class="nav-tab" data-page="profile">👤 אזור אישי</button>
       </div>
       <div class="nav-right">
@@ -300,6 +301,67 @@
 
     </div>
 
+    <!-- ===== FRIENDS PAGE ===== -->
+    <div id="page-friends" class="page">
+
+      <div class="friends-search-section">
+        <h3 class="section-title">🔍 חיפוש חברים</h3>
+        <div class="search-row">
+          <input type="text" id="friends-search-input" placeholder="הקלד שם משתמש..." />
+          <button id="btn-search-friend" class="btn btn-primary">חיפוש</button>
+        </div>
+        <div id="friend-search-result"></div>
+      </div>
+
+      <div class="following-section">
+        <h3 class="section-title">👥 עוקב אחרי</h3>
+        <div id="following-list"><p class="empty-friends-msg">עוד לא עוקב אחרי אף אחד</p></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Friend Profile Modal -->
+  <div id="friend-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <button id="friend-modal-close" class="modal-close">✕</button>
+      <div class="friend-profile-header">
+        <div class="profile-avatar-big" id="friend-modal-avatar"></div>
+        <div class="profile-info">
+          <h2 id="friend-modal-name"></h2>
+          <p id="friend-modal-username" class="profile-uname"></p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card stat-streak">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-value" id="friend-stat-streak">0</div>
+          <div class="stat-label">רצף נוכחי</div>
+        </div>
+        <div class="stat-card stat-best">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-value" id="friend-stat-best">0</div>
+          <div class="stat-label">רצף מקסימלי</div>
+        </div>
+        <div class="stat-card stat-points">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-value" id="friend-stat-points">0</div>
+          <div class="stat-label">נקודות</div>
+        </div>
+        <div class="stat-card stat-tasks">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value" id="friend-stat-tasks">0</div>
+          <div class="stat-label">משימות</div>
+        </div>
+      </div>
+      <h3 class="section-title">שבוע אחרון</h3>
+      <div class="week-dots-row">
+        <div class="week-dots" id="friend-modal-week-dots"></div>
+      </div>
+      <h3 class="section-title">הישגים</h3>
+      <div class="achievements-grid" id="friend-modal-achievements"></div>
+    </div>
   </div>
 
   <!-- Toast notification -->

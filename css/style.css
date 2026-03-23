@@ -781,3 +781,156 @@ html, body {
 }
 .set-task-form.hidden { display: none; }
 
+/* ── Friends page ───────────────────────────────────── */
+.friends-search-section,
+.following-section {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.search-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.search-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-size: .95rem;
+  font-family: inherit;
+  direction: rtl;
+  transition: border-color .2s;
+}
+.search-row input:focus { outline: none; border-color: var(--green); }
+
+#friend-search-result { margin-top: 12px; }
+
+.empty-friends-msg {
+  color: var(--gray-600);
+  text-align: center;
+  padding: 14px 0;
+  font-size: .9rem;
+}
+
+/* ── Friend card ──────────────────────────────────── */
+.friend-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  transition: transform .18s, box-shadow .18s;
+}
+.friend-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+
+.friend-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.friend-card-info {
+  flex: 1;
+  cursor: pointer;
+}
+.friend-card-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--gray-900);
+}
+.friend-card-meta {
+  font-size: .82rem;
+  color: var(--gray-600);
+  margin-top: 2px;
+}
+
+.btn-follow, .btn-unfollow {
+  padding: 7px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .18s;
+  white-space: nowrap;
+}
+.btn-follow { background: var(--green); color: #fff; }
+.btn-follow:hover { background: var(--green-dark); }
+.btn-follow.following { background: var(--gray-200); color: var(--gray-600); }
+.btn-follow.following:hover { background: var(--gray-400); }
+.btn-unfollow { background: var(--gray-100); color: var(--gray-600); }
+.btn-unfollow:hover { background: var(--red); color: #fff; }
+
+/* ── Friend profile modal ─────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal-content {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: var(--gray-100);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .18s;
+}
+.modal-close:hover { background: var(--gray-200); }
+
+.friend-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.week-dots-row {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 18px;
+}
+
