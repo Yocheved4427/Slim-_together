@@ -396,9 +396,10 @@ async function renderFriends(currentUser) {
       </div>
       <button class="btn-unfollow" data-uname="${friend.username}">בטל מעקב</button>
     `;
-    card.querySelector('.friend-card-info').addEventListener('click', () => showFriendModal(friend));
-    card.querySelector('.friend-card-avatar').addEventListener('click', () => showFriendModal(friend));
-    card.querySelector('.friend-card-name').addEventListener('click', () => showFriendModal(friend));
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      if (!e.target.closest('.btn-unfollow')) showFriendModal(friend);
+    });
     card.querySelector('.btn-unfollow').addEventListener('click', async (e) => {
       e.stopPropagation();
       await API.unfollowUser(currentUser.username, friend.username);
@@ -719,8 +720,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ${alreadyF ? 'עוקב ✓' : '+ עקוב'}
       </button>
     `;
-    card.querySelector('.friend-card-info').addEventListener('click', () => showFriendModal(found));
-    card.querySelector('.friend-card-avatar').addEventListener('click', () => showFriendModal(found));
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      if (!e.target.closest('.btn-follow')) showFriendModal(found);
+    });
     const followBtn = card.querySelector('.btn-follow');
     followBtn.addEventListener('click', async () => {
       if (followBtn.classList.contains('following')) {
